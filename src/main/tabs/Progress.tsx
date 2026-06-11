@@ -21,120 +21,133 @@ const Progress = () => {
   const week = [0.75, 0.95, 0.6, 0.9, 0.7, 0.45, 0.85];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.dateSmall}>Friday, 6 Jun</Text>
-            <Text style={styles.title}>Progress</Text>
-          </View>
-        </View>
-
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, styles.calorieCard]}>
-            <Text style={styles.summaryLabel}>CALORIES</Text>
-            <Text style={styles.summaryValue}>{calories.toLocaleString()}</Text>
-            <Text style={styles.summarySub}>
-              of {caloriesTarget.toLocaleString()} kcal
-            </Text>
-            <View style={styles.smallBarBg}>
-              <View
-                style={[
-                  styles.smallBarFill,
-                  {
-                    width: `${caloriesProgress * 100}%`,
-                    backgroundColor: Colors.orange,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-
-          <View style={[styles.summaryCard, styles.proteinCard]}>
-            <Text style={styles.summaryLabelGreen}>PROTEIN</Text>
-            <Text style={styles.summaryValue}>58g</Text>
-            <Text style={styles.summarySub}>of 80g goal</Text>
-            <View style={styles.smallBarBg}>
-              <View
-                style={[
-                  styles.smallBarFill,
-                  {
-                    width: `${proteinProgress * 100}%`,
-                    backgroundColor: Colors.green,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.weekCard}>
-          <View style={styles.weekHeader}>
-            <Text style={styles.weekTitle}>This week</Text>
-            <Text style={styles.weekAvg}>avg 1,624 kcal</Text>
-          </View>
-          <View style={styles.weekBarsRow}>
-            {week.map((w, i) => (
-              <View key={i} style={styles.weekBarWrap}>
-                <View
-                  style={[
-                    styles.weekBar,
-                    {
-                      height: `${Math.max(w, 0.08) * 100}%`,
-                      backgroundColor: i === 6 ? Colors.orange : "#F7BFA6",
-                    },
-                  ]}
-                />
-                <Text style={styles.weekDay}>
-                  {["M", "T", "W", "T", "F", "S", "S"][i]}
-                </Text>
-              </View>
-            ))}
-          </View>
-          <View style={styles.weekLegendRow}>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendSwatch, { backgroundColor: "#FFE6D9" }]}
-              />
-              <Text style={styles.legendLabel}>Under goal</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendSwatch, { backgroundColor: "#FFC9AA" }]}
-              />
-              <Text style={styles.legendLabel}>Over goal</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.macrosCard}>
-          <Text style={styles.macrosTitle}>Today's macros</Text>
-          {macros.map((m) => {
-            const pct = Math.min(m.value / m.target, 1);
-            return (
-              <View key={m.key} style={styles.macroRow}>
-                <Text style={styles.macroLabel}>{m.key}</Text>
-                <Text style={styles.macroValue}>
-                  {m.value} / {m.target}g
-                </Text>
-                <View style={styles.macroBarBg}>
-                  <View
-                    style={[
-                      styles.macroBarFill,
-                      { width: `${pct * 100}%`, backgroundColor: m.color },
-                    ]}
-                  />
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#F7F7F7",
+      }}
+    >
+      <Text style={{ fontSize: 18, color: "#303030" }}>Progress Screen</Text>
+    </View>
   );
+
+  // return (
+  //   <SafeAreaView style={styles.safeArea}>
+  //     <ScrollView
+  //       contentContainerStyle={styles.container}
+  //       showsVerticalScrollIndicator={false}
+  //     >
+  //       <View style={styles.headerRow}>
+  //         <View>
+  //           <Text style={styles.dateSmall}>Friday, 6 Jun</Text>
+  //           <Text style={styles.title}>Progress</Text>
+  //         </View>
+  //       </View>
+
+  //       <View style={styles.summaryRow}>
+  //         <View style={[styles.summaryCard, styles.calorieCard]}>
+  //           <Text style={styles.summaryLabel}>CALORIES</Text>
+  //           <Text style={styles.summaryValue}>{calories.toLocaleString()}</Text>
+  //           <Text style={styles.summarySub}>
+  //             of {caloriesTarget.toLocaleString()} kcal
+  //           </Text>
+  //           <View style={styles.smallBarBg}>
+  //             <View
+  //               style={[
+  //                 styles.smallBarFill,
+  //                 {
+  //                   width: `${caloriesProgress * 100}%`,
+  //                   backgroundColor: Colors.orange,
+  //                 },
+  //               ]}
+  //             />
+  //           </View>
+  //         </View>
+
+  //         <View style={[styles.summaryCard, styles.proteinCard]}>
+  //           <Text style={styles.summaryLabelGreen}>PROTEIN</Text>
+  //           <Text style={styles.summaryValue}>58g</Text>
+  //           <Text style={styles.summarySub}>of 80g goal</Text>
+  //           <View style={styles.smallBarBg}>
+  //             <View
+  //               style={[
+  //                 styles.smallBarFill,
+  //                 {
+  //                   width: `${proteinProgress * 100}%`,
+  //                   backgroundColor: Colors.green,
+  //                 },
+  //               ]}
+  //             />
+  //           </View>
+  //         </View>
+  //       </View>
+
+  //       <View style={styles.weekCard}>
+  //         <View style={styles.weekHeader}>
+  //           <Text style={styles.weekTitle}>This week</Text>
+  //           <Text style={styles.weekAvg}>avg 1,624 kcal</Text>
+  //         </View>
+  //         <View style={styles.weekBarsRow}>
+  //           {week.map((w, i) => (
+  //             <View key={i} style={styles.weekBarWrap}>
+  //               <View
+  //                 style={[
+  //                   styles.weekBar,
+  //                   {
+  //                     height: `${Math.max(w, 0.08) * 100}%`,
+  //                     backgroundColor: i === 6 ? Colors.orange : "#F7BFA6",
+  //                   },
+  //                 ]}
+  //               />
+  //               <Text style={styles.weekDay}>
+  //                 {["M", "T", "W", "T", "F", "S", "S"][i]}
+  //               </Text>
+  //             </View>
+  //           ))}
+  //         </View>
+  //         <View style={styles.weekLegendRow}>
+  //           <View style={styles.legendItem}>
+  //             <View
+  //               style={[styles.legendSwatch, { backgroundColor: "#FFE6D9" }]}
+  //             />
+  //             <Text style={styles.legendLabel}>Under goal</Text>
+  //           </View>
+  //           <View style={styles.legendItem}>
+  //             <View
+  //               style={[styles.legendSwatch, { backgroundColor: "#FFC9AA" }]}
+  //             />
+  //             <Text style={styles.legendLabel}>Over goal</Text>
+  //           </View>
+  //         </View>
+  //       </View>
+
+  //       <View style={styles.macrosCard}>
+  //         <Text style={styles.macrosTitle}>Today's macros</Text>
+  //         {macros.map((m) => {
+  //           const pct = Math.min(m.value / m.target, 1);
+  //           return (
+  //             <View key={m.key} style={styles.macroRow}>
+  //               <Text style={styles.macroLabel}>{m.key}</Text>
+  //               <Text style={styles.macroValue}>
+  //                 {m.value} / {m.target}g
+  //               </Text>
+  //               <View style={styles.macroBarBg}>
+  //                 <View
+  //                   style={[
+  //                     styles.macroBarFill,
+  //                     { width: `${pct * 100}%`, backgroundColor: m.color },
+  //                   ]}
+  //                 />
+  //               </View>
+  //             </View>
+  //           );
+  //         })}
+  //       </View>
+  //     </ScrollView>
+  //   </SafeAreaView>
+  // );
 };
 
 const styles = StyleSheet.create({

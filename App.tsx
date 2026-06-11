@@ -1,9 +1,9 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Home from './src/main/tabs/Home';
 import Progress from './src/main/tabs/Progress';
@@ -31,6 +31,7 @@ const screenIcon = (name: string) => {
 };
 
 export default function App() {
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -44,7 +45,8 @@ export default function App() {
               tabBarStyle: {
                 height: 74,
                 paddingTop: 8,
-                paddingBottom: 10,
+                paddingBottom: Platform.OS === 'ios' ? 18 : 10,
+                paddingHorizontal: 10,
                 borderTopWidth: 0,
                 backgroundColor: '#FFFFFF',
                 shadowColor: '#000',
@@ -52,6 +54,9 @@ export default function App() {
                 shadowRadius: 12,
                 shadowOffset: { width: 0, height: -3 },
                 elevation: 10,
+              },
+              tabBarItemStyle: {
+                marginHorizontal: 4,
               },
               tabBarIcon: ({ color }: { color: string }) => (
                 <Text style={{ fontSize: 20, color }}>{screenIcon(route.name)}</Text>
@@ -64,6 +69,10 @@ export default function App() {
               name="Snap"
               component={Snap}
               options={{
+                tabBarLabel: 'Snap',
+                tabBarButton: (props) => (
+                  <CustomTabBarButton {...props} />
+                ),
                 tabBarIcon: () => (
                   <Text style={{ fontSize: 24 }}>📸</Text>
                 ),
@@ -77,3 +86,43 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+
+const CustomTabBarButton = ({ children, onPress, style }: any) => {
+  const insets = useSafeAreaInsets();
+  const topOffset = -24 - (insets.bottom ? insets.bottom / 2 : 0);
+  return (
+    <View style={[style, fabStyles.placeholderWrap]}>
+      <View style={[fabStyles.fabContainer, { top: topOffset }]} pointerEvents="box-none">
+        <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={fabStyles.fabButton}>
+          <Text style={{ fontSize: 28 }}>📸</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const fabStyles = StyleSheet.create({
+  placeholderWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fabContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    left: 0,
+    right: 0,
+  },
+  fabButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#FF6C00',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF6C00',
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 12,
+  },
+});

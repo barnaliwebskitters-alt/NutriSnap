@@ -1,124 +1,464 @@
-import React from 'react';
-import { SafeAreaView, ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import React, { useState, useEffect } from "react";
+import {
+  ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import { useNavigation } from "@react-navigation/native";
+import { Colors } from "../../theme/Themes";
+import { DatabaseService, getOrCreateDeviceId } from "../../lib/Supabase";
+import { MealLog, DailySummary, UserProfile } from "../../types/database.types";
 
-const meals = [
-  { title: 'Paratha + Curd', subtitle: 'Breakfast · 8:15 am', calories: 420 },
-  { title: 'Dal Makhani + Rice', subtitle: 'Lunch · 1:00 pm', calories: 560 },
-  { title: 'Masala Chai', subtitle: 'Snack · 4:30 pm', calories: 160 },
-];
+const { width } = Dimensions.get("window");
 
-const quickAddItems = [
-  { title: 'Paratha', calories: 320 },
-  { title: 'Idli', calories: 210 },
-  { title: 'Dal Rice', calories: 420 },
-  { title: 'Dosa', calories: 340 },
-];
+// Emojis mapping for food items
+const FOOD_EMOJIS: Record<string, string> = {
+  "Paratha + Curd": "🫓",
+  "Dal Makhani + Rice": "🍛",
+  "Masala Chai": "☕",
+  Paratha: "🫓",
+  Idli: "🍲",
+  "Dal Rice": "🍛",
+  Dosa: "🥞",
+  default: "🍽️",
+};
 
 const Home = () => {
-  const caloriesToday = 1140;
-  const targetCalories = 1800;
-  const progress = Math.min(caloriesToday / targetCalories, 1);
+  const navigation = useNavigation<any>();
+
+  // State variables - Initialized to the exact mockup data to ensure zero loading state on first paint
+  const [deviceId, setDeviceId] = useState<string>("");
+  const [profile, setProfile] = useState<UserProfile>({
+    device_id: "",
+    display_name: "Vivek",
+    goal_calories: 1800,
+    goal_protein: 80,
+    goal_carbs: 200,
+    goal_fat: 60,
+    goal_fibre: 25,
+    goal_sodium: 2000,
+    primary_goal: "weight_loss,high_protein",
+    has_bp: false,
+    has_cholesterol: false,
+    has_diabetes: false,
+    has_thyroid: false,
+  });
+
+  const [meals, setMeals] = useState<MealLog[]>([
+    {
+      id: "mock-1",
+      device_id: "",
+      log_date: "",
+      meal_type: "breakfast",
+      food_name: "Paratha + Curd",
+      serving_size: "1 plate",
+      servings: 1,
+      calories: 420,
+      protein: 18,
+      carbs: 45,
+      fat: 18,
+      fibre: 3,
+      sugar: 4,
+      sodium: 450,
+      saturated_fat: 8,
+      cholesterol: 15,
+      source: "manual",
+    },
+    {
+      id: "mock-2",
+      device_id: "",
+      log_date: "",
+      meal_type: "lunch",
+      food_name: "Dal Makhani + Rice",
+      serving_size: "1 bowl",
+      servings: 1,
+      calories: 560,
+      protein: 35,
+      carbs: 65,
+      fat: 14,
+      fibre: 8,
+      sugar: 2,
+      sodium: 650,
+      saturated_fat: 5,
+      cholesterol: 10,
+      source: "quick_add",
+    },
+    {
+      id: "mock-3",
+      device_id: "",
+      log_date: "",
+      meal_type: "snack",
+      food_name: "Masala Chai",
+      serving_size: "1 cup",
+      servings: 1,
+      calories: 160,
+      protein: 5,
+      carbs: 14,
+      fat: 6,
+      fibre: 0,
+      sugar: 10,
+      sodium: 50,
+      saturated_fat: 3,
+      cholesterol: 5,
+      source: "manual",
+    },
+  ]);
+
+  const [summary, setSummary] = useState<DailySummary>({
+    device_id: "",
+    log_date: "",
+    total_calories: 1140,
+    total_protein: 58,
+    total_carbs: 124,
+    total_fat: 38,
+    total_fibre: 11,
+    total_sodium: 1150,
+    meal_count: 3,
+  });
+
+  // Load data on component mount
+  useEffect(() => {
+    const initData = async () => {
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const dId = await getOrCreateDeviceId();
+        setDeviceId(dId);
+
+        // Fetch User Profile
+        const userProfile = await DatabaseService.getUserProfile(dId);
+        setProfile(userProfile);
+
+        // Fetch logs for today (caches logs and summary if not found)
+        const todayLogs = await DatabaseService.getMealLogs(dId, today);
+        setMeals(todayLogs);
+
+        // Fetch summary
+        const dailySum = await DatabaseService.getDailySummary(dId, today);
+        setSummary(dailySum);
+      } catch (err) {
+        console.error("Error initializing Home data:", err);
+      }
+    };
+
+    initData();
+  }, []);
+
+  // Quick Add handler
+  const handleQuickAdd = async (
+    foodName: string,
+    calories: number,
+    protein: number,
+    carbs: number,
+    fat: number,
+  ) => {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const currentHour = new Date().getHours();
+
+      // Determine meal type by hour
+      let mealType: "breakfast" | "lunch" | "dinner" | "snack" = "snack";
+      if (currentHour >= 6 && currentHour < 11) mealType = "breakfast";
+      else if (currentHour >= 11 && currentHour < 15) mealType = "lunch";
+      else if (currentHour >= 18 && currentHour < 22) mealType = "dinner";
+
+      const newMeal: MealLog = {
+        device_id: deviceId,
+        log_date: today,
+        meal_type: mealType,
+        food_name: foodName,
+        serving_size: "1 serving",
+        servings: 1,
+        calories,
+        protein,
+        carbs,
+        fat,
+        fibre: 2,
+        sugar: 1,
+        sodium: 250,
+        saturated_fat: 1,
+        cholesterol: 0,
+        source: "quick_add",
+      };
+
+      // Instantly update database and local cache
+      const result = await DatabaseService.addMealLog(newMeal);
+
+      // Update local state instantly
+      setMeals(result.logs);
+      setSummary(result.summary);
+    } catch (e) {
+      console.error("Failed to quick add meal:", e);
+    }
+  };
+
+  // Helper to get formatted meal title and subtitle
+  const formatMealDetails = (meal: MealLog) => {
+    // Keep exact mockup subtitle for initial mock data
+    if (meal.id === "mock-1") return "Breakfast · 8:15 am";
+    if (meal.id === "mock-2") return "Lunch · 1:00 pm";
+    if (meal.id === "mock-3") return "Snack · 4:30 pm";
+
+    // Format new meals dynamically
+    const mealTypeFormatted =
+      meal.meal_type.charAt(0).toUpperCase() + meal.meal_type.slice(1);
+
+    // Fallback if no creation time is saved
+    const timeStr = new Date()
+      .toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+      .toLowerCase();
+    return `${mealTypeFormatted} · ${timeStr}`;
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Good morning";
+    if (hour >= 12 && hour < 17) return "Good afternoon";
+    if (hour >= 17 && hour < 21) return "Good evening";
+    return "Good night";
+  };
+
+  const greetingText = `${getGreeting()}`;
+
+  // Progress Calculations
+  const calorieProgress = Math.min(
+    summary.total_calories / (profile.goal_calories || 1800),
+    1,
+  );
+  const proteinProgress = Math.min(
+    summary.total_protein / (profile.goal_protein || 80),
+    1,
+  );
+  const carbsProgress = Math.min(
+    summary.total_carbs / (profile.goal_carbs || 200),
+    1,
+  );
+  const fatProgress = Math.min(summary.total_fat / (profile.goal_fat || 60), 1);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <StatusBar style="dark" />
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.topRow}>
-          <View>
-            <Text style={styles.greetingSmall}>Good evening 🌙</Text>
-            <Text style={styles.greetingLarge}>Vivek</Text>
-          </View>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarInitial}>V</Text>
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>CALORIES TODAY</Text>
-          <View style={styles.calorieRow}>
-            <Text style={styles.calorieValue}>{caloriesToday.toLocaleString()}</Text>
-            <View style={styles.calorieTargetBlock}>
-              <Text style={styles.calorieTarget}>{targetCalories.toLocaleString()}</Text>
-              <Text style={styles.kcalText}>kcal</Text>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* --- TOP WHITE CONTAINER --- */}
+        <View style={styles.topSection}>
+          {/* Header Row */}
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.greetingText}>{greetingText}</Text>
+              <Text style={styles.userName}>{profile.display_name}</Text>
             </View>
-          </View>
-          <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
-          </View>
-        </View>
-
-        <View style={styles.nutrientRow}>
-          <View style={[styles.nutrientCard, styles.nutrientShadow]}>
-            <Text style={styles.nutrientValue}>58g</Text>
-            <Text style={styles.nutrientLabel}>PROTEIN</Text>
-            <View style={styles.nutrientLineBackground}>
-              <View style={[styles.nutrientLine, { width: '45%', backgroundColor: '#42B983' }]} />
-            </View>
-          </View>
-          <View style={[styles.nutrientCard, styles.nutrientShadow]}>
-            <Text style={styles.nutrientValue}>124g</Text>
-            <Text style={styles.nutrientLabel}>CARBS</Text>
-            <View style={styles.nutrientLineBackground}>
-              <View style={[styles.nutrientLine, { width: '70%', backgroundColor: '#FF6C00' }]} />
-            </View>
-          </View>
-          <View style={[styles.nutrientCard, styles.nutrientShadow]}>
-            <Text style={styles.nutrientValue}>38g</Text>
-            <Text style={styles.nutrientLabel}>FAT</Text>
-            <View style={styles.nutrientLineBackground}>
-              <View style={[styles.nutrientLine, { width: '30%', backgroundColor: '#5D5D5D' }]} />
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.tipCard}>
-          <Text style={styles.tipText}>
-            Dal before rice lowers your glycaemic impact significantly today.
-          </Text>
-        </View>
-
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeader}>TODAY&apos;S MEALS</Text>
-          <View style={styles.snapAction}>
-            <Text style={styles.snapActionText}>📷</Text>
-            <Text style={styles.snapText}>Snap</Text>
-          </View>
-        </View>
-
-        {meals.map((meal, index) => (
-          <View key={index} style={styles.mealCard}>
-            <View style={styles.mealIcon}>
-              <Text style={styles.mealIconEmoji}>🍽️</Text>
-            </View>
-            <View style={styles.mealInfo}>
-              <Text style={styles.mealTitle}>{meal.title}</Text>
-              <Text style={styles.mealSubtitle}>{meal.subtitle}</Text>
-            </View>
-            <View style={styles.mealCaloriesBlock}>
-              <Text style={styles.mealCalories}>{meal.calories}</Text>
-              <Text style={styles.mealCaloriesSuffix}>kcal</Text>
-            </View>
-          </View>
-        ))}
-
-        <View style={styles.quickHeaderRow}>
-          <Text style={styles.sectionHeader}>QUICK ADD</Text>
-          <Text style={styles.moreText}>More →</Text>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickAddRow}>
-          {quickAddItems.map((item, index) => (
-            <TouchableOpacity key={index} style={styles.quickCard} activeOpacity={0.8}>
-              <View style={styles.quickIcon}>
-                <Text style={styles.quickIconEmoji}>🥘</Text>
+            <View style={styles.avatarBorder}>
+              <View style={styles.avatarBg}>
+                <Text style={styles.avatarEmoji}>👦</Text>
               </View>
-              <Text style={styles.quickTitle}>{item.title}</Text>
-              <Text style={styles.quickCalories}>{item.calories}</Text>
+            </View>
+          </View>
+
+          {/* Calorie Stats */}
+          <View style={styles.calorieSection}>
+            <Text style={styles.calorieTitle}>CALORIES TODAY</Text>
+            <View style={styles.calorieRow}>
+              <Text style={styles.calorieValue}>
+                {summary.total_calories.toLocaleString()}
+              </Text>
+              <View style={styles.targetBlock}>
+                <Text style={styles.targetValue}>
+                  / {profile.goal_calories.toLocaleString()}
+                </Text>
+                <Text style={styles.kcalLabel}>kcal</Text>
+              </View>
+            </View>
+
+            {/* Calorie Progress Bar */}
+            <View style={styles.calorieTrack}>
+              <View
+                style={[
+                  styles.calorieFill,
+                  { width: `${calorieProgress * 100}%` },
+                ]}
+              />
+            </View>
+          </View>
+
+          {/* Macro Summary Row */}
+          <View style={styles.macroRow}>
+            {/* Protein Card */}
+            <View style={styles.macroCard}>
+              <Text style={styles.macroValue}>{summary.total_protein}g</Text>
+              <Text style={styles.macroLabel}>PROTEIN</Text>
+              <View style={styles.macroTrack}>
+                <View
+                  style={[
+                    styles.macroFill,
+                    {
+                      width: `${proteinProgress * 100}%`,
+                      backgroundColor: Colors.green,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+
+            {/* Carbs Card */}
+            <View style={styles.macroCard}>
+              <Text style={styles.macroValue}>{summary.total_carbs}g</Text>
+              <Text style={styles.macroLabel}>CARBS</Text>
+              <View style={styles.macroTrack}>
+                <View
+                  style={[
+                    styles.macroFill,
+                    {
+                      width: `${carbsProgress * 100}%`,
+                      backgroundColor: Colors.orange,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+
+            {/* Fat Card */}
+            <View style={styles.macroCard}>
+              <Text style={styles.macroValue}>{summary.total_fat}g</Text>
+              <Text style={styles.macroLabel}>FAT</Text>
+              <View style={styles.macroTrack}>
+                <View
+                  style={[
+                    styles.macroFill,
+                    {
+                      width: `${fatProgress * 100}%`,
+                      backgroundColor: "#3A3A3C",
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* --- BOTTOM GRAY CONTENT CONTAINER --- */}
+        <View style={styles.bottomSection}>
+          {/* AI Insights Card */}
+          <View style={styles.insightCard}>
+            <Text style={styles.insightEmoji}>🌿</Text>
+            <Text style={styles.insightText}>
+              Dal before rice lowers your glycaemic impact significantly today.
+            </Text>
+          </View>
+
+          {/* Today's Meals Section */}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitleText}>TODAY'S MEALS</Text>
+            <TouchableOpacity
+              style={styles.snapBtn}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate("Snap")}
+            >
+              <Text style={styles.snapEmoji}>📸</Text>
+              <Text style={styles.snapBtnText}>Snap</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          </View>
+
+          {/* Meal Logs List */}
+          <View style={styles.mealsList}>
+            {meals.map((meal) => (
+              <View key={meal.id} style={styles.mealCard}>
+                <View style={styles.mealIconBg}>
+                  <Text style={styles.mealIcon}>
+                    {FOOD_EMOJIS[meal.food_name] || FOOD_EMOJIS["default"]}
+                  </Text>
+                </View>
+                <View style={styles.mealInfo}>
+                  <Text style={styles.mealName}>{meal.food_name}</Text>
+                  <Text style={styles.mealMeta}>{formatMealDetails(meal)}</Text>
+                </View>
+                <View style={styles.mealCalBlock}>
+                  <Text style={styles.mealCalories}>{meal.calories}</Text>
+                  <Text style={styles.mealCalUnit}>kcal</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* Quick Add Section */}
+          <View style={styles.quickAddHeaderRow}>
+            <Text style={styles.sectionTitleText}>QUICK ADD</Text>
+            <TouchableOpacity activeOpacity={0.7}>
+              <Text style={styles.moreBtnText}>More →</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Horizontally scrolling quick-add cards */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickAddScroll}
+          >
+            {/* Paratha Card */}
+            <TouchableOpacity
+              style={styles.quickAddCard}
+              activeOpacity={0.8}
+              onPress={() => handleQuickAdd("Paratha", 320, 8, 40, 14)}
+            >
+              <View style={styles.quickAddIconBg}>
+                <Text style={styles.quickAddIcon}>🫓</Text>
+              </View>
+              <Text style={styles.quickAddName}>Paratha</Text>
+              <Text style={styles.quickAddCal}>320</Text>
+            </TouchableOpacity>
+
+            {/* Idli Card */}
+            <TouchableOpacity
+              style={styles.quickAddCard}
+              activeOpacity={0.8}
+              onPress={() => handleQuickAdd("Idli", 210, 5, 44, 1)}
+            >
+              <View style={styles.quickAddIconBg}>
+                <Text style={styles.quickAddIcon}>🍲</Text>
+              </View>
+              <Text style={styles.quickAddName}>Idli</Text>
+              <Text style={styles.quickAddCal}>210</Text>
+            </TouchableOpacity>
+
+            {/* Dal Rice Card */}
+            <TouchableOpacity
+              style={styles.quickAddCard}
+              activeOpacity={0.8}
+              onPress={() => handleQuickAdd("Dal Rice", 420, 14, 65, 10)}
+            >
+              <View style={styles.quickAddIconBg}>
+                <Text style={styles.quickAddIcon}>🍛</Text>
+              </View>
+              <Text style={styles.quickAddName}>Dal Rice</Text>
+              <Text style={styles.quickAddCal}>420</Text>
+            </TouchableOpacity>
+
+            {/* Dosa Card */}
+            <TouchableOpacity
+              style={styles.quickAddCard}
+              activeOpacity={0.8}
+              onPress={() => handleQuickAdd("Dosa", 340, 6, 50, 12)}
+            >
+              <View style={styles.quickAddIconBg}>
+                <Text style={styles.quickAddIcon}>🥞</Text>
+              </View>
+              <Text style={styles.quickAddName}>Dosa</Text>
+              <Text style={styles.quickAddCal}>340</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -127,275 +467,303 @@ const Home = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: "#FFFFFF", // Clean white top
   },
-  container: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 24,
+  },
+  // --- TOP WHITE SECTION ---
+  topSection: {
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
-  content: {
-    paddingBottom: 32,
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
   },
-  topRow: {
-    marginTop: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  greetingText: {
+    fontSize: 14.5,
+    color: "#8E8E93",
+    fontWeight: "500",
+    marginBottom: 3,
   },
-  greetingSmall: {
-    color: '#7A7A7A',
-    fontSize: 14,
+  userName: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#1C1C1E",
+  },
+  avatarBorder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1.5,
+    borderColor: "#FFDCC8",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFF2EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarEmoji: {
+    fontSize: 26,
+  },
+  calorieSection: {
+    marginBottom: 24,
+  },
+  calorieTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#8E8E93",
+    letterSpacing: 0.8,
     marginBottom: 6,
   },
-  greetingLarge: {
-    fontSize: 36,
-    color: '#161616',
-    fontWeight: '800',
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#FFF2E6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FFE3CC',
-  },
-  avatarInitial: {
-    fontSize: 22,
-    color: '#FF6C00',
-    fontWeight: '700',
-  },
-  card: {
-    marginTop: 24,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
-  },
-  sectionTitle: {
-    color: '#8F8F8F',
-    fontSize: 12,
-    letterSpacing: 1,
-    marginBottom: 14,
-  },
   calorieRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: 16,
   },
   calorieValue: {
-    fontSize: 56,
-    color: '#FF5A00',
-    fontWeight: '900',
-    lineHeight: 60,
+    fontSize: 60,
+    fontWeight: "900",
+    color: Colors.orange,
+    lineHeight: 68,
   },
-  calorieTargetBlock: {
-    alignItems: 'flex-end',
+  targetBlock: {
+    flexDirection: "column",
+    marginLeft: 10,
+    justifyContent: "flex-end",
   },
-  calorieTarget: {
-    fontSize: 18,
-    color: '#6B6B6B',
-    fontWeight: '700',
+  targetValue: {
+    fontSize: 19,
+    fontWeight: "700",
+    color: "#AEAEB2",
   },
-  kcalText: {
-    fontSize: 14,
-    color: '#B5B5B5',
-    marginTop: 4,
+  kcalLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#AEAEB2",
+    marginTop: 1,
   },
-  progressBarBackground: {
-    height: 10,
-    width: '100%',
-    backgroundColor: '#F0F0F0',
-    borderRadius: 10,
-    marginTop: 24,
-    overflow: 'hidden',
+  calorieTrack: {
+    height: 8,
+    width: "100%",
+    backgroundColor: "#E5E5EA",
+    borderRadius: 4,
+    overflow: "hidden",
   },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#FF6C00',
+  calorieFill: {
+    height: "100%",
+    backgroundColor: Colors.orange,
+    borderRadius: 4,
   },
-  nutrientRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 18,
+  macroRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
-  nutrientCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+  macroCard: {
+    width: (width - 56) / 3, // dynamic width fitting screens
+    backgroundColor: "#F2F2F7",
+    borderRadius: 16,
+    padding: 14,
+    justifyContent: "center",
+  },
+  macroValue: {
+    fontSize: 19,
+    fontWeight: "800",
+    color: "#1C1C1E",
+    marginBottom: 4,
+  },
+  macroLabel: {
+    fontSize: 10.5,
+    fontWeight: "700",
+    color: "#8E8E93",
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  macroTrack: {
+    height: 4.5,
+    width: "100%",
+    backgroundColor: "#E5E5EA",
+    borderRadius: 2.5,
+    overflow: "hidden",
+  },
+  macroFill: {
+    height: "100%",
+    borderRadius: 2.5,
+  },
+
+  // --- BOTTOM GRAY SECTION ---
+  bottomSection: {
+    backgroundColor: "#F2F4F7", // Matches the design's gray layout background
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    minHeight: 500,
+  },
+  insightCard: {
+    flexDirection: "row",
+    backgroundColor: "#E6F9EE",
+    borderWidth: 1,
+    borderColor: "#CBEFDB",
+    borderRadius: 18,
     padding: 16,
-    marginHorizontal: 4,
+    alignItems: "center",
+    marginBottom: 24,
   },
-  nutrientShadow: {
-    shadowColor: '#000',
+  insightEmoji: {
+    fontSize: 22,
+    marginRight: 12,
+  },
+  insightText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1E5D2F",
+    lineHeight: 18.5,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  sectionTitleText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "#8E8E93",
+    letterSpacing: 0.8,
+  },
+  snapBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  snapEmoji: {
+    fontSize: 15,
+    marginRight: 4,
+  },
+  snapBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.orange,
+  },
+  mealsList: {
+    marginBottom: 24,
+  },
+  mealCard: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 12,
+    shadowColor: "#000",
     shadowOpacity: 0.02,
-    shadowRadius: 12,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
-  nutrientValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#171717',
-  },
-  nutrientLabel: {
-    fontSize: 11,
-    color: '#A3A3A3',
-    marginTop: 8,
-    letterSpacing: 0.5,
-  },
-  nutrientLineBackground: {
-    height: 6,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 6,
-    marginTop: 14,
-    overflow: 'hidden',
-  },
-  nutrientLine: {
-    height: '100%',
-    borderRadius: 6,
-  },
-  tipCard: {
-    marginTop: 20,
-    backgroundColor: '#E6F7E9',
-    borderRadius: 20,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-  },
-  tipText: {
-    color: '#1E5D2F',
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '700',
-  },
-  sectionHeaderRow: {
-    marginTop: 26,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sectionHeader: {
-    color: '#8B8B8B',
-    fontSize: 12,
-    letterSpacing: 1,
-    fontWeight: '700',
-  },
-  snapAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  snapActionText: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  snapText: {
-    color: '#FF6C00',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  mealCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 18,
-    marginTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+  mealIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#FFF2EB",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
   },
   mealIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    backgroundColor: '#FFF2E6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  mealIconEmoji: {
     fontSize: 24,
   },
   mealInfo: {
     flex: 1,
   },
-  mealTitle: {
+  mealName: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#171717',
+    fontWeight: "700",
+    color: "#1C1C1E",
+    marginBottom: 3,
   },
-  mealSubtitle: {
-    color: '#8B8B8B',
-    fontSize: 13,
-    marginTop: 4,
+  mealMeta: {
+    fontSize: 12.5,
+    color: "#8E8E93",
   },
-  mealCaloriesBlock: {
-    alignItems: 'flex-end',
+  mealCalBlock: {
+    alignItems: "flex-end",
   },
   mealCalories: {
-    color: '#FF6C00',
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: "800",
+    color: Colors.orange,
   },
-  mealCaloriesSuffix: {
-    color: '#A1A1A1',
-    fontSize: 12,
-    marginTop: 2,
+  mealCalUnit: {
+    fontSize: 11,
+    color: "#AEAEB2",
+    marginTop: 1,
   },
-  quickHeaderRow: {
-    marginTop: 24,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  moreText: {
-    color: '#FF6C00',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  quickAddRow: {
-    paddingTop: 16,
-    paddingBottom: 20,
-  },
-  quickCard: {
-    width: 130,
-    backgroundColor: '#FFF6ED',
-    borderRadius: 24,
-    padding: 16,
-    marginRight: 14,
-    alignItems: 'center',
-  },
-  quickIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+  quickAddHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 14,
   },
-  quickIconEmoji: {
-    fontSize: 24,
-  },
-  quickTitle: {
+  moreBtnText: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#171717',
-    textAlign: 'center',
-    marginBottom: 6,
+    fontWeight: "700",
+    color: Colors.orange,
   },
-  quickCalories: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FF6C00',
+  quickAddScroll: {
+    paddingBottom: 20,
+  },
+  quickAddCard: {
+    width: 108,
+    backgroundColor: "#FFF5ED",
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    marginRight: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.02,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  quickAddIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  quickAddIcon: {
+    fontSize: 22,
+  },
+  quickAddName: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1C1C1E",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  quickAddCal: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: Colors.orange,
   },
 });
 

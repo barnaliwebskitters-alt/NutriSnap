@@ -117,19 +117,20 @@ const getDefaultMeals = (deviceId: string, date: string): MealLog[] => [
     source: 'manual'
   }
 ];
+
 const getDefaultProfile = (deviceId: string): UserProfile => ({
   device_id: deviceId,
   display_name: 'Vivek',
-  age: 28,
+  age: 40,
   gender: 'male',
-  height_cm: 178,
-  weight_kg: 76,
+  height_cm: 180,
+  weight_kg: 80,
   target_weight_kg: 72,
   activity_level: 'moderate',
   primary_goal: 'weight_loss,high_protein',
   has_bp: false,
   has_cholesterol: false,
-  has_diabetes: false,
+  has_diabetes: true,
   has_thyroid: false,
   goal_calories: 1800,
   goal_protein: 80,
@@ -138,6 +139,7 @@ const getDefaultProfile = (deviceId: string): UserProfile => ({
   goal_fibre: 25,
   goal_sodium: 2000
 });
+
 export const DatabaseService = {
   /**
    * Retrieves user profile. Check cache first, then fetch from Supabase if online.

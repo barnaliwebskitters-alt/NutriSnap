@@ -489,12 +489,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   greetingText: {
+    fontFamily: "PlusJakartaSans-Medium",
     fontSize: 14.5,
     color: "#8E8E93",
     fontWeight: "500",
     marginBottom: 3,
   },
   userName: {
+    fontFamily: "PlusJakartaSans-Bold",
     fontSize: 32,
     fontWeight: "800",
     color: "#1C1C1E",
@@ -523,6 +525,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   calorieTitle: {
+    fontFamily: "PlusJakartaSans-Bold",
     fontSize: 11,
     fontWeight: "700",
     color: "#8E8E93",
@@ -531,10 +534,10 @@ const styles = StyleSheet.create({
   },
   calorieRow: {
     flexDirection: "row",
-    alignItems: "baseline",
     marginBottom: 16,
   },
   calorieValue: {
+    fontFamily: "PlusJakartaSans-ExtraBold",
     fontSize: 60,
     fontWeight: "900",
     color: Colors.orange,
@@ -543,14 +546,16 @@ const styles = StyleSheet.create({
   targetBlock: {
     flexDirection: "column",
     marginLeft: 10,
-    justifyContent: "flex-end",
+    justifyContent: "center",
   },
   targetValue: {
+    fontFamily: "PlusJakartaSans-Bold",
     fontSize: 19,
     fontWeight: "700",
     color: "#AEAEB2",
   },
   kcalLabel: {
+    fontFamily: "PlusJakartaSans-Medium",
     fontSize: 13,
     fontWeight: "500",
     color: "#AEAEB2",
@@ -580,12 +585,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   macroValue: {
+    fontFamily: "PlusJakartaSans-Bold",
     fontSize: 19,
     fontWeight: "800",
     color: "#1C1C1E",
     marginBottom: 4,
   },
   macroLabel: {
+    fontFamily: "PlusJakartaSans-Bold",
     fontSize: 10.5,
     fontWeight: "700",
     color: "#8E8E93",
@@ -628,6 +635,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   insightText: {
+    fontFamily: "PlusJakartaSans-SemiBold",
     flex: 1,
     fontSize: 14,
     fontWeight: "600",
@@ -641,6 +649,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitleText: {
+    fontFamily: "PlusJakartaSans-Bold",
     fontSize: 11.5,
     fontWeight: "700",
     color: "#8E8E93",
@@ -655,6 +664,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   snapBtnText: {
+    fontFamily: "PlusJakartaSans-Bold",
     fontSize: 14,
     fontWeight: "700",
     color: Colors.orange,
@@ -691,12 +701,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mealName: {
+    fontFamily: "PlusJakartaSans-Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#1C1C1E",
     marginBottom: 3,
   },
   mealMeta: {
+    fontFamily: "PlusJakartaSans-Medium",
     fontSize: 12.5,
     color: "#8E8E93",
   },
@@ -704,11 +716,13 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   mealCalories: {
+    fontFamily: "PlusJakartaSans-Bold",
     fontSize: 18,
     fontWeight: "800",
     color: Colors.orange,
   },
   mealCalUnit: {
+    fontFamily: "PlusJakartaSans-Medium",
     fontSize: 11,
     color: "#AEAEB2",
     marginTop: 1,
@@ -720,6 +734,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   moreBtnText: {
+    fontFamily: "PlusJakartaSans-Bold",
     fontSize: 14,
     fontWeight: "700",
     color: Colors.orange,
@@ -754,6 +769,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   quickAddName: {
+    fontFamily: "PlusJakartaSans-Bold",
     fontSize: 13,
     fontWeight: "700",
     color: "#1C1C1E",
@@ -761,6 +777,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   quickAddCal: {
+    fontFamily: "PlusJakartaSans-ExtraBold",
     fontSize: 15,
     fontWeight: "800",
     color: Colors.orange,
